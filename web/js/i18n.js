@@ -115,6 +115,7 @@ const STRINGS = {
     'char.minutesShort': 'm',
     'save.extension': 'Save type',
     'save.file': 'Save file',
+    'save.account': 'Account',
     'save.switchFailed': 'Could not switch save',
 
     'popup.foundSave': '✓ Found — recorded in your save',
@@ -251,6 +252,7 @@ const STRINGS = {
     'char.minutesShort': 'м',
     'save.extension': 'Тип сохранения',
     'save.file': 'Файл сохранения',
+    'save.account': 'Аккаунт',
     'save.switchFailed': 'Не удалось сменить сохранение',
 
     'popup.foundSave': '✓ Найдено — есть в сохранении',

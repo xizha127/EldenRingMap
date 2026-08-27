@@ -729,9 +729,13 @@ function buildSavePicker() {
 
   const renderFiles = () => {
     const matches = state.saves.filter((save) => save.extension === extension.value);
-    file.innerHTML = matches.map((save) =>
-      `<option value="${escapeHtml(save.path)}" title="${escapeHtml(save.path)}">${escapeHtml(save.account)}</option>`
-    ).join('');
+    file.innerHTML = matches.map((save) => {
+      const chars = save.characters || [];
+      const label = chars.length
+        ? chars.map((c) => `${c.name} · ${t('char.level')} ${c.level}`).join(' / ')
+        : `${t('save.account')} ${save.account}`;
+      return `<option value="${escapeHtml(save.path)}" title="${escapeHtml(save.path)}">${escapeHtml(label)}</option>`;
+    }).join('');
     const current = matches.find((save) => save.path === state.savePath);
     file.value = current?.path || matches[0]?.path || '';
     file.disabled = matches.length === 0;

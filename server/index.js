@@ -115,6 +115,7 @@ const clients = new Set();
 let current = null;      // last good snapshot sent to clients
 let live = null;         // optional LiveMemory bridge
 let activeSlot = null;
+let slotVotes = {};      // slot -> consecutive wins, for re-match hysteresis
 
 function matchActiveSlot(position) {
   if (!current || !position) return null;
@@ -238,6 +239,13 @@ function listSaves(selectedPath) {
   return saves.sort((a, b) => b.mtime - a.mtime);
 }
 
+function readSaveCharacters(savePath, bst) {
+  try {
+    const reader = new SaveReader(savePath, bst);
+    return reader.read().characters.map((c) => ({ slot: c.slot, name: c.name, level: c.level }));
+  } catch { return []; }
+}
+
 /* -------------------------------------------------------------- http serve */
 
 const MIME = {
@@ -337,7 +345,11 @@ function main() {
     if (p === '/api/state') return json(res, current);
     if (p === '/api/markers') return json(res, MARKER_DOC);
     if (p === '/api/saves' && req.method === 'GET') {
-      return json(res, { current: savePath, saves: listSaves(savePath) });
+      const saves = listSaves(savePath).map((s) => ({
+        ...s,
+        characters: readSaveCharacters(s.path, bst),
+      }));
+      return json(res, { current: savePath, saves });
     }
     if (p === '/api/saves' && req.method === 'POST') {
       let body = '';
@@ -407,7 +419,22 @@ data: ${JSON.stringify(live.pos)}
     live = new LiveMemory({
       root: ROOT, python: args.python, hz: args.hz,
       onPos: (p) => {
-        if (activeSlot === null) activeSlot = matchActiveSlot(p);
+        // Re-match every sample, but require 3 consecutive wins before
+        // switching, so a shared grace or a loading-screen blip cannot flip the
+        // active character on a single frame. This also self-corrects if the
+        // first sample was wrong.
+        const matched = matchActiveSlot(p);
+        if (matched !== null) {
+          if (matched !== activeSlot) {
+            slotVotes[matched] = (slotVotes[matched] || 0) + 1;
+            if (slotVotes[matched] >= 3) {
+              activeSlot = matched;
+              slotVotes = {};
+            }
+          } else {
+            slotVotes = {};
+          }
+        }
         p.slot = activeSlot;
         if (current) current.activeSlot = activeSlot;
         broadcast('pos', p);
