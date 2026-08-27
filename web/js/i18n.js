@@ -86,6 +86,7 @@ const STRINGS = {
     'zoom.player': 'Centre on your last save position',
     'zoom.noPlayer': 'Player position unavailable',
     'zoom.noPlayerSub': 'save has no readable position',
+    'zoom.following': 'Following player — click to stop',
 
     'hint.controls': 'drag to pan · scroll to zoom',
     'foot.markers': 'markers',
@@ -173,6 +174,7 @@ const STRINGS = {
     'zoom.player': 'К позиции из последнего сохранения',
     'zoom.noPlayer': 'Позиция игрока недоступна',
     'zoom.noPlayerSub': 'в сохранении нет читаемой позиции',
+    'zoom.following': 'Слежение за игроком — нажмите, чтобы остановить',
 
     'hint.controls': 'перетаскивайте — сдвиг · колесо — масштаб',
     'foot.markers': 'меток',

@@ -62,6 +62,7 @@ const state = {
   icons: null,          // iconId -> {file,w,h}, from web/icons/index.json
   iconImgs: new Map(),  // iconId -> HTMLImageElement, loaded lazily
   showIcons: true,      // draw the game's own sprites instead of coloured dots
+  followPlayer: false,  // continuous auto-centre on the player until toggled off / dragged
 };
 
 /**
@@ -180,6 +181,17 @@ function initMap(masterId) {
     onHover: handleHover,
   });
   map.fit();
+
+  // Dragging the map is a deliberate manual pan, so it disengages follow.
+  // Each initMap() swaps in a fresh canvas (switchMaster), hence the listener
+  // lives here rather than in wireUi. pointerdown only — wheel zoom stays free.
+  map.canvas.addEventListener('pointerdown', () => {
+    if (state.followPlayer) {
+      state.followPlayer = false;
+      $('goto-player').classList.remove('active');
+      $('goto-player').title = t('zoom.player');
+    }
+  });
 }
 
 /* ------------------------------------------------------------ marker draw */
@@ -410,6 +422,24 @@ function playerTarget() {
              angle: null, live: false, roundtable: false };
   }
   return null;
+}
+
+/**
+ * Follow mode: stays engaged while the position is unknown — only a click or
+ * drag disengages. Called from the SSE pos/state handlers and the button.
+ */
+function followPlayer(force) {
+  const btn = $('goto-player');
+  if (force !== true && !state.followPlayer) return;
+  const p = playerTarget();
+  if (p) {
+    if (p.master && p.master !== state.master) switchMaster(p.master);
+    map.centerOn(p.px, p.py, Math.max(map.scale, 1.2));
+    btn.classList.add('active');
+  } else {
+    // position unknown yet; stay engaged, do not toast repeatedly
+    btn.classList.add('active');
+  }
 }
 
 function drawPlayer(ctx, m) {
@@ -682,12 +712,15 @@ function wireUi() {
   $('zoom-out').onclick = () => map.zoomBy(1 / 1.6);
   $('zoom-fit').onclick = () => map.fit();
   $('goto-player').onclick = () => {
-    const p = playerTarget();
-    if (p) {
-      if (p.master && p.master !== state.master) switchMaster(p.master);
-      map.flyTo(p.px, p.py, Math.max(map.scale, 1.2));
+    state.followPlayer = !state.followPlayer;
+    if (state.followPlayer) {
+      const p = playerTarget();
+      if (!p) toast(t('zoom.noPlayer'), t('zoom.noPlayerSub'));
+      $('goto-player').title = t('zoom.following');
+      followPlayer(true);
     } else {
-      toast(t('zoom.noPlayer'), t('zoom.noPlayerSub'));
+      $('goto-player').classList.remove('active');
+      $('goto-player').title = t('zoom.player');
     }
   };
 
@@ -769,6 +802,7 @@ function connect() {
     try {
       const p = JSON.parse(ev.data);
       state.livePos = p;
+      if (state.followPlayer) followPlayer();
       const active = state.characters.find((character) => character.slot === p.slot);
       if (active && active !== state.character) {
         state.character = active;
@@ -829,6 +863,7 @@ function applyState(s) {
     }
     if (n.ids.length > 4) toast(`+${n.ids.length - 4} ${t('toast.more')}`, t('toast.discovered'));
   }
+  if (state.followPlayer) followPlayer();
 }
 
 /** One line describing the optional live-memory feed, or nothing when it is off. */

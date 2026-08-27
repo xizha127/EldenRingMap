@@ -179,6 +179,9 @@ html, body {
   border: 1px solid var(--line); border-radius: 4px; cursor: pointer;
 }
 #zoom-controls button:hover { border-color: var(--gold); color: var(--gold); }
+#zoom-controls button.active {
+  border-color: var(--gold); color: var(--gold); background: #221d12;
+}
 
 #tooltip {
   position: absolute; z-index: 30; pointer-events: none;
