@@ -79,13 +79,16 @@ function loadJson(file, fallback) {
 const projector = new Projector(loadJson(path.join(DATA, 'legacy-conv.json'), null));
 
 /**
- * Markers come from two generated files: markers.json (graces, bosses, POIs,
- * map fragments - built from the param tables) and the optional items.json
- * (item pickups - needs the slower MSB extraction). Either may be absent.
+ * Markers come from three generated files: markers.json (graces, bosses, POIs,
+ * map fragments - built from the param tables), the optional items.json
+ * (item pickups - needs the slower MSB extraction), and the optional
+ * pieces.json (ERR Rune/Ember Piece collectibles). Each may be absent.
  */
 const markerData = loadJson(path.join(DATA, 'markers.json'), { markers: [] });
 const itemData = loadJson(path.join(DATA, 'items.json'), { markers: [] });
-const MARKERS = [...(markerData.markers || []), ...(itemData.markers || [])];
+const pieceData = loadJson(path.join(DATA, 'pieces.json'), { markers: [] });
+const MARKERS = [...(markerData.markers || []), ...(itemData.markers || []),
+                 ...(pieceData.markers || [])];
 const FLAG_MARKERS = MARKERS.filter((m) => m.flag);
 const MARKER_DOC = { locales: markerData.locales || ['en'], markers: MARKERS };
 
@@ -421,7 +424,9 @@ data: ${JSON.stringify(live.pos)}
     console.log(`  save      ${savePath}`);
     console.log(`  markers   ${MARKERS.length} (${FLAG_MARKERS.length} flag-tracked)` +
       (itemData.markers && itemData.markers.length
-        ? `  incl. ${itemData.markers.length} items` : '  (no items.json - run tools/extract_items.py)'));
+        ? `  incl. ${itemData.markers.length} items` : '  (no items.json - run tools/extract_items.py)') +
+      (pieceData.markers && pieceData.markers.length
+        ? `, ${pieceData.markers.length} pieces` : ''));
     if (c) {
       console.log(`  character ${c.name}, level ${c.level}, ` +
         `${Math.floor(c.secondsPlayed / 3600)}h${String(Math.floor(c.secondsPlayed % 3600 / 60)).padStart(2, '0')}m` +

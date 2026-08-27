@@ -139,5 +139,7 @@ printf '\n[4/5] Extracting item locations...\n'
 "$PYTHON" "$ROOT/tools/extract_items.py" --game-dir "$GAME_DIR" --mod-dir "$MOD_DIR"
 printf '\n[5/5] Extracting map icons...\n'
 "$PYTHON" "$ROOT/tools/extract_icons.py" --game-dir "$GAME_DIR" --mod-dir "$MOD_DIR"
+printf '\n[6/6] Extracting ERR rune/ember pieces...\n'
+"$PYTHON" "$ROOT/tools/extract_pieces.py" --game-dir "$GAME_DIR" --mod-dir "$MOD_DIR"
 
 printf '\nSetup complete. Run ./start-map.sh to open the live map.\n'
