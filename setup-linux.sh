@@ -4,15 +4,28 @@ set -euo pipefail
 readonly ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly STEAM_ROOT="${ER_STEAM_ROOT:-$HOME/.steam/steam}"
 readonly GAME_DIR="${ER_GAME_DIR:-$STEAM_ROOT/steamapps/common/ELDEN RING/Game}"
+# Only treat a mod folder as active when the game is actually loading
+# loose-file mods (loader DLL present) and the mod genuinely replaces
+# game data (its regulation.bin differs from the game's).
 DEFAULT_MOD_DIR=""
-for candidate in "$HOME/.steam/steam/steamapps/common/ELDEN RING/Game/mod" \
-                 "$HOME/ERR/mod" \
-                 "$HOME/mod"; do
-    if [[ -n "$candidate" && -d "$candidate" && -r "$candidate/regulation.bin" ]]; then
-        DEFAULT_MOD_DIR="$candidate"
+mod_loader_present=false
+for dll in dxgi.dll winmm.dll dinput8.dll version.dll unsteam.dll; do
+    if [[ -r "$GAME_DIR/$dll" ]]; then
+        mod_loader_present=true
         break
     fi
 done
+if [[ "$mod_loader_present" == true ]]; then
+    for candidate in "$HOME/.steam/steam/steamapps/common/ELDEN RING/Game/mod" \
+                     "$HOME/ERR/mod" \
+                     "$HOME/mod"; do
+        if [[ -n "$candidate" && -d "$candidate" && -r "$candidate/regulation.bin" ]] \
+           && ! cmp -s "$candidate/regulation.bin" "$GAME_DIR/regulation.bin"; then
+            DEFAULT_MOD_DIR="$candidate"
+            break
+        fi
+    done
+fi
 readonly MOD_DIR="${ER_MOD_DIR:-$DEFAULT_MOD_DIR}"
 readonly NATIVE_DIR="$ROOT/cache/native-oodle"
 readonly SOURCE_DIR="$NATIVE_DIR/source"
