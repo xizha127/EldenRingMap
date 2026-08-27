@@ -2,12 +2,17 @@
 set -euo pipefail
 
 readonly ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-readonly STEAM_ROOT="${ER_STEAM_ROOT:-/run/media/xizha/GAMES/Steam}"
+readonly STEAM_ROOT="${ER_STEAM_ROOT:-$HOME/.steam/steam}"
 readonly GAME_DIR="${ER_GAME_DIR:-$STEAM_ROOT/steamapps/common/ELDEN RING/Game}"
 DEFAULT_MOD_DIR=""
-if [[ -d /run/media/xizha/GAMES/ERR/mod ]]; then
-    DEFAULT_MOD_DIR=/run/media/xizha/GAMES/ERR/mod
-fi
+for candidate in "$HOME/.steam/steam/steamapps/common/ELDEN RING/Game/mod" \
+                 "$HOME/ERR/mod" \
+                 "$HOME/mod"; do
+    if [[ -n "$candidate" && -d "$candidate" && -r "$candidate/regulation.bin" ]]; then
+        DEFAULT_MOD_DIR="$candidate"
+        break
+    fi
+done
 readonly MOD_DIR="${ER_MOD_DIR:-$DEFAULT_MOD_DIR}"
 readonly NATIVE_DIR="$ROOT/cache/native-oodle"
 readonly SOURCE_DIR="$NATIVE_DIR/source"

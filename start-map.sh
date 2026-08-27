@@ -2,7 +2,7 @@
 set -euo pipefail
 
 readonly ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-readonly STEAM_ROOT="${ER_STEAM_ROOT:-/run/media/xizha/GAMES/Steam}"
+readonly STEAM_ROOT="${ER_STEAM_ROOT:-$HOME/.steam/steam}"
 readonly PREFIX="${ER_PREFIX:-$STEAM_ROOT/steamapps/compatdata/1245620/pfx}"
 readonly PORT="${ER_MAP_PORT:-8099}"
 
