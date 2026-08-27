@@ -24,11 +24,13 @@ import struct
 import sys
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-from erlib.memory import Process, ProcessNotFound
-
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
+if os.name == "nt":
+    from erlib.memory import Process, ProcessNotFound
+else:
+    from erlib.memory_linux import Process, ProcessNotFound
 
 # `mov reg,[rip+rel32]` loading one of the game's global singletons.
 # From soarqin/EROverlay src/hooking.cpp. Patterns rather than fixed offsets,
@@ -52,6 +54,8 @@ MASTER_PX = 10496
 
 
 def is_admin():
+    if os.name != "nt":
+        return True
     try:
         return bool(ctypes.windll.shell32.IsUserAnAdmin())
     except Exception:
@@ -65,10 +69,10 @@ def emit(obj):
 
 class LiveReader:
     def __init__(self):
-        self.proc = None
-        self.menu = None
-        self.loc_off = None
-        self.addrs = {}
+        self.proc: Process | None = None
+        self.menu: int | None = None
+        self.loc_off: int | None = None
+        self.addrs: dict[str, int | None] = {}
 
     def attach(self):
         """Open the game and resolve the pointers. False if not ready yet."""
@@ -84,10 +88,14 @@ class LiveReader:
         return True
 
     def _read_location(self, loc_off):
-        addr = self.proc.chain(self.menu, [0x80, loc_off, 0x24])
+        proc = self.proc
+        menu = self.menu
+        if proc is None or menu is None:
+            return None
+        addr = proc.chain(menu, [0x80, loc_off, 0x24])
         if not addr:
             return None
-        raw = self.proc.read(addr, 20)
+        raw = proc.read(addr, 20)
         if not raw:
             return None
         map_id, x, y, undr, ori = struct.unpack("<iffif", raw)
@@ -149,6 +157,7 @@ def run_stream(hz):
             if not attached:
                 reader.attach()
                 attached = True
+                assert reader.proc is not None
                 emit({"type": "status", "state": "attached",
                       "pid": reader.proc.pid,
                       "addrs": {k: (f"0x{v:X}" if v else None) for k, v in reader.addrs.items()}})
@@ -163,6 +172,8 @@ def run_stream(hz):
 
         except ProcessNotFound as e:
             attached = False
+            if reader.proc:
+                reader.proc.close()
             reader.proc = None
             now = time.time()
             if now - last_warn > 10:
@@ -171,6 +182,9 @@ def run_stream(hz):
             time.sleep(2.0)
         except Exception as e:
             attached = False
+            if reader.proc:
+                reader.proc.close()
+            reader.proc = None
             emit({"type": "status", "state": "error", "detail": f"{type(e).__name__}: {e}"})
             time.sleep(3.0)
 
@@ -189,6 +203,7 @@ def run_probe():
         reader = LiveReader()
         t0 = time.time()
         reader.attach()
+        assert reader.proc is not None
         say(f"attached to pid {reader.proc.pid}, base 0x{reader.proc.base:X}, "
             f"image {reader.proc.size / 1e6:.1f} MB")
         for k, v in reader.addrs.items():

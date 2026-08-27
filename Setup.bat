@@ -11,16 +11,17 @@ rem libraries. Only fill this in if that fails - it must be the folder that
 rem contains eldenring.exe and regulation.bin.
 rem
 rem   set GAMEDIR=D:\Games\Steam\steamapps\common\ELDEN RING\Game
+rem   set MODDIR=D:\Games\ELDEN RING Reforged\mod
 rem ---------------------------------------------------------------------------
-set GAMEDIR=
+if not defined GAMEDIR set "GAMEDIR="
+if not defined MODDIR set "MODDIR="
+if not "%MODDIR%"=="" set "ER_MOD_DIR=%MODDIR%"
 
 echo.
 echo   Elden Ring Live Map - setup
 echo   ===========================
 echo.
 
-where node >nul 2>nul
-if errorlevel 1 goto :no_node
 where python >nul 2>nul
 if errorlevel 1 goto :no_python
 
@@ -57,12 +58,6 @@ echo   Done. Start it any time with "Start Map.bat".
 echo.
 pause
 goto :eof
-
-:no_node
-echo   Node.js not found. Install it from https://nodejs.org, then run this again.
-echo   Make sure you open a NEW window afterwards so PATH is picked up.
-echo.
-pause & goto :eof
 
 :no_python
 echo   Python not found. Install it from https://python.org, then run this again.

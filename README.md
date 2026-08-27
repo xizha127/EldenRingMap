@@ -39,7 +39,7 @@ during setup, in about two minutes.
 
 | | |
 |---|---|
-| Windows | 10 or 11 |
+| OS | Windows 10/11, or Linux with Steam/Proton |
 | Elden Ring | installed — the map art is read out of your install |
 | [Node.js](https://nodejs.org) | 18 or newer (LTS is fine) |
 | [Python](https://python.org) | 3.9 or newer — **tick "Add Python to PATH"** in the installer |
@@ -75,6 +75,31 @@ That must be the folder containing `eldenring.exe` and `regulation.bin`. In
 Steam: right-click Elden Ring → Manage → Browse local files, then open the
 `Game` subfolder and copy the address bar.
 
+For a loose-file mod such as Elden Ring Reforged, set its mod directory too:
+
+```bat
+set MODDIR=D:\Games\ELDEN RING Reforged\mod
+```
+
+The setup then uses the mod's `regulation.bin`, MapStudio files, messages, and
+map-icon atlases over the base archives. Base map tiles are still extracted
+from the game unless the mod supplies replacements.
+
+### Linux / Steam Proton
+
+Run the native setup and launcher:
+
+```bash
+ER_MOD_DIR="/path/to/ERR/mod" ./setup-linux.sh
+./start-map.sh
+```
+
+The Linux setup builds a native Oodle-compatible decoder and applies loose mod
+files over the installed game archives. `ER_GAME_DIR`, `ER_STEAM_ROOT`,
+`ER_MOD_DIR`, `ER_PREFIX`, and `ER_SAVE` can override auto-detected paths.
+`start-map.sh` reads the running Proton game through `/proc` for real-time
+position; it does not depend on a particular Proton build.
+
 ---
 
 ## Using it
@@ -83,8 +108,9 @@ Steam: right-click Elden Ring → Manage → Browse local files, then open the
 `http://localhost:8099`. Leave the black console window open while you play —
 closing it stops the map.
 
-Your save is found automatically. Start the game, play, and the map keeps up on
-its own.
+Your save is found automatically. The sidebar has separate selectors for save
+extension (`.sl2`, `.err`, and other installed variants) and Steam-account save
+file. Start the game, play, and the map keeps up on its own.
 
 | Control | |
 |---|---|
@@ -178,10 +204,11 @@ yours is elsewhere:
 npm start -- --save "C:\path\to\ER0000.sl2"
 ```
 
-### Everything is grey / nothing shows as found
+### The wrong character is displayed
 
-Only the **first occupied save slot** is displayed. If your character is in a
-later slot, that's a current limitation.
+In live mode, the running character is matched to the save slot by its current
+map position. Without a running game, use the save-type and save-file selectors
+in the sidebar to choose the correct save container.
 
 ### Progress isn't updating
 

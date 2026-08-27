@@ -30,6 +30,10 @@
       </div>
       <div id="char-stats" class="stats"></div>
       <div id="char-where" class="where dim"></div>
+      <div class="save-picker">
+        <label><span data-i18n="save.extension">Save type</span><select id="save-extension"></select></label>
+        <label><span data-i18n="save.file">Save file</span><select id="save-file"></select></label>
+      </div>
     </section>
 
     <section class="panel">
@@ -54,7 +58,7 @@
     <section id="categories" class="panel tight grow">
       <div class="panel-title">
         <span data-i18n="panel.categories">Categories</span>
-        <button id="toggle-all" class="mini" data-i18n="panel.selectNone">none</button>
+        <button type="button" id="toggle-all" class="mini" data-i18n="panel.selectNone">none</button>
       </div>
       <div id="category-list"></div>
     </section>
@@ -81,10 +85,10 @@
     <canvas id="map"></canvas>
 
     <div id="zoom-controls">
-      <button id="zoom-in" data-i18n-title="zoom.in" title="Zoom in">+</button>
-      <button id="zoom-out" data-i18n-title="zoom.out" title="Zoom out">−</button>
-      <button id="zoom-fit" data-i18n-title="zoom.fit" title="Fit map">⤢</button>
-      <button id="goto-player" data-i18n-title="zoom.player" title="Centre on last save">◎</button>
+      <button type="button" id="zoom-in" data-i18n-title="zoom.in" title="Zoom in">+</button>
+      <button type="button" id="zoom-out" data-i18n-title="zoom.out" title="Zoom out">−</button>
+      <button type="button" id="zoom-fit" data-i18n-title="zoom.fit" title="Fit map">⤢</button>
+      <button type="button" id="goto-player" data-i18n-title="zoom.player" title="Centre on last save">◎</button>
     </div>
 
     <div id="tooltip" class="hidden"></div>

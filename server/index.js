@@ -103,6 +103,19 @@ function computeFound(character) {
 const clients = new Set();
 let current = null;      // last good snapshot sent to clients
 let live = null;         // optional LiveMemory bridge
+let activeSlot = null;
+
+function matchActiveSlot(position) {
+  if (!current || !position) return null;
+  let best = null;
+  for (const character of current.characters) {
+    const saved = character.mapPixel;
+    if (!saved || saved.master !== position.master) continue;
+    const distance = Math.hypot(saved.px - position.px, saved.py - position.py);
+    if (!best || distance < best.distance) best = { slot: character.slot, distance };
+  }
+  return best && best.slot;
+}
 
 function broadcast(event, payload) {
   const frame = `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`;
@@ -161,6 +174,7 @@ function startWatcher(reader, savePath, pollMs) {
         return;
       }
       const prev = current;
+      snap.activeSlot = activeSlot;
       current = snap;
 
       // Report newly-found markers per character so the UI can highlight them.
@@ -182,10 +196,35 @@ function startWatcher(reader, savePath, pollMs) {
     }, 350);
   };
 
-  fs.watchFile(savePath, { interval: pollMs }, (cur, prev) => {
+  const watcher = (cur, prev) => {
     if (cur.mtimeMs !== prev.mtimeMs) refresh('save changed');
-  });
-  return refresh;
+  };
+  fs.watchFile(savePath, { interval: pollMs }, watcher);
+  return () => {
+    clearTimeout(timer);
+    fs.unwatchFile(savePath, watcher);
+  };
+}
+
+function listSaves(selectedPath) {
+  const root = path.dirname(path.dirname(selectedPath));
+  const saves = [];
+  try {
+    for (const account of fs.readdirSync(root)) {
+      if (!/^\d+$/.test(account)) continue;
+      const accountDir = path.join(root, account);
+      for (const file of fs.readdirSync(accountDir)) {
+        const match = /^ER0000\.([a-z0-9]+)$/i.exec(file);
+        if (!match) continue;
+        const savePath = path.join(accountDir, file);
+        const stat = fs.statSync(savePath);
+        if (!stat.isFile()) continue;
+        saves.push({ path: savePath, account, extension: `.${match[1].toLowerCase()}`,
+                     mtime: stat.mtimeMs });
+      }
+    }
+  } catch { return []; }
+  return saves.sort((a, b) => b.mtime - a.mtime);
 }
 
 /* -------------------------------------------------------------- http serve */
@@ -239,7 +278,7 @@ function main() {
     return;
   }
 
-  const savePath = args.save || findSave();
+  let savePath = args.save || findSave();
   if (!savePath || !fs.existsSync(savePath)) {
     console.error('Could not find ER0000.sl2.');
     console.error('Pass one explicitly:  node server/index.js --save "C:\\path\\to\\ER0000.sl2"');
@@ -254,7 +293,7 @@ function main() {
     console.warn('warning: data/markers.json is empty - run `python tools/build_markers.py`');
   }
 
-  const reader = new SaveReader(savePath, bst);
+  let reader = new SaveReader(savePath, bst);
   try {
     current = buildSnapshot(reader, savePath);
   } catch (err) {
@@ -262,12 +301,45 @@ function main() {
     process.exit(1);
   }
 
+  let stopWatcher = () => {};
+  const switchSave = (nextPath) => {
+    const allowed = listSaves(savePath).some((entry) => entry.path === nextPath);
+    if (!allowed) throw new Error('save file is outside the discovered Elden Ring profiles');
+    const nextReader = new SaveReader(nextPath, bst);
+    const next = buildSnapshot(nextReader, nextPath);
+    stopWatcher();
+    savePath = nextPath;
+    reader = nextReader;
+    activeSlot = null;
+    current = next;
+    if (live && live.pos) activeSlot = matchActiveSlot(live.pos);
+    current.activeSlot = activeSlot;
+    current.live = live ? live.state : null;
+    stopWatcher = startWatcher(reader, savePath, args.poll);
+    broadcast('state', { ...current, newlyFound: [] });
+  };
+
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, 'http://localhost');
     const p = url.pathname;
 
     if (p === '/api/state') return json(res, current);
     if (p === '/api/markers') return json(res, MARKER_DOC);
+    if (p === '/api/saves' && req.method === 'GET') {
+      return json(res, { current: savePath, saves: listSaves(savePath) });
+    }
+    if (p === '/api/saves' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; if (body.length > 65536) req.destroy(); });
+      req.on('end', () => {
+        try {
+          const next = JSON.parse(body);
+          switchSave(next.path);
+          json(res, { ok: true, current: savePath });
+        } catch (error) { json(res, { error: error.message }, 400); }
+      });
+      return undefined;
+    }
 
     if (p === '/api/events') {
       res.writeHead(200, {
@@ -309,6 +381,7 @@ data: ${JSON.stringify(live.pos)}
     if (p === '/api/refresh') {
       try {
         current = buildSnapshot(reader, savePath);
+        current.activeSlot = activeSlot;
         broadcast('state', { ...current, newlyFound: [] });
         return json(res, { ok: true });
       } catch (e) { return json(res, { error: e.message }, 500); }
@@ -317,12 +390,17 @@ data: ${JSON.stringify(live.pos)}
     return serveStatic(req, res, p);
   });
 
-  startWatcher(reader, savePath, args.poll);
+  stopWatcher = startWatcher(reader, savePath, args.poll);
 
   if (args.liveMemory) {
     live = new LiveMemory({
       root: ROOT, python: args.python, hz: args.hz,
-      onPos: (p) => broadcast('pos', p),
+      onPos: (p) => {
+        if (activeSlot === null) activeSlot = matchActiveSlot(p);
+        p.slot = activeSlot;
+        if (current) current.activeSlot = activeSlot;
+        broadcast('pos', p);
+      },
       onStatus: (st) => { if (current) current.live = st; broadcast('live', st); },
     });
     live.start();

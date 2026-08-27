@@ -21,10 +21,13 @@ import sys
 import time
 from collections import Counter, defaultdict
 
-sys.stdout.reconfigure(encoding="utf-8")
+reconfigure = getattr(sys.stdout, "reconfigure", None)
+if reconfigure:
+    reconfigure(encoding="utf-8")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from erlib import msb as msblib, param, paramdef, fmg, dcx, oodle
+import erlib.modfiles as modfiles
 from erlib.dvdbnd import DvdBnd
 from erlib.gamepath import require_game_dir
 from build_markers import LegacyConv, place, LOCALES
@@ -90,16 +93,18 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--game-dir", default=None)
+    ap.add_argument("--mod-dir", default=None)
     ap.add_argument("--limit", type=int, default=0, help="only N maps (for testing)")
     args = ap.parse_args()
 
     game = require_game_dir(args.game_dir)
+    mod = modfiles.find_mod_dir(args.mod_dir)
     t0 = time.time()
     dvd = DvdBnd(game, cache_dir=os.path.join(ROOT, "cache"), verbose=False)
     helper = oodle.make_helper(game)
 
     print("loading params ...")
-    params = param.load_params(os.path.join(game, "regulation.bin"))
+    params = param.load_params(modfiles.regulation_path(game, mod))
     lot_def = paramdef.load(os.path.join(DEFS, "ItemLotParam.xml"))
     conv = LegacyConv(params["WorldMapLegacyConvParam"].rows,
                       paramdef.load(os.path.join(DEFS, "WorldMapLegacyConvParam.xml")))
@@ -112,8 +117,9 @@ def main():
         tables = {}
         for f in ["item.msgbnd.dcx", "item_dlc02.msgbnd.dcx"]:
             p = f"/msg/{folder}/{f}"
-            if dvd.has(p):
-                for k, v in fmg.load_msgbnd(dvd.read(p), oodle=helper).items():
+            if modfiles.has(dvd, mod, p):
+                data = modfiles.read(dvd, mod, p)
+                for k, v in fmg.load_msgbnd(data, oodle=helper).items():
                     tables.setdefault(k.split("_dlc")[0], {}).update(v)
         names_by_loc[loc] = tables
     en = names_by_loc["en"]
@@ -141,10 +147,11 @@ def main():
     stats = Counter()
     for i, map_id in enumerate(map_ids):
         path = f"/map/mapstudio/{map_id}.msb.dcx"
-        if not dvd.has(path):
+        if not modfiles.has(dvd, mod, path):
             continue
         try:
-            m = msblib.load(dcx.decompress(dvd.read(path), oodle=helper))
+            data = modfiles.read(dvd, mod, path)
+            m = msblib.load(dcx.decompress(data, oodle=helper))
         except Exception as exc:
             stats["msb parse failed"] += 1
             continue

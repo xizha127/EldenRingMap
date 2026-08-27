@@ -65,6 +65,9 @@ const STRINGS = {
     'char.deaths': ['death', 'deaths', 'deaths'],
     'char.hoursShort': 'h',
     'char.minutesShort': 'm',
+    'save.extension': 'Save type',
+    'save.file': 'Save file',
+    'save.switchFailed': 'Could not switch save',
 
     'popup.foundSave': '✓ Found — recorded in your save',
     'popup.foundManual': '✓ Marked found manually',
@@ -149,6 +152,9 @@ const STRINGS = {
     'char.deaths': ['смерть', 'смерти', 'смертей'],
     'char.hoursShort': 'ч',
     'char.minutesShort': 'м',
+    'save.extension': 'Тип сохранения',
+    'save.file': 'Файл сохранения',
+    'save.switchFailed': 'Не удалось сменить сохранение',
 
     'popup.foundSave': '✓ Найдено — есть в сохранении',
     'popup.foundManual': '✓ Отмечено вручную',
@@ -206,7 +212,7 @@ const I18n = {
     localStorage.setItem('er-map-lang', lang);
     document.documentElement.lang = lang;
     this.apply();
-    this.listeners.forEach((f) => f(lang));
+    this.listeners.forEach((listener) => { listener(lang); });
   },
 
   onChange(fn) { this.listeners.push(fn); },

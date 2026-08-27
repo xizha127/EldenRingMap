@@ -49,6 +49,9 @@ const state = {
   checked: {},
   hideFound: false,
   showLabels: true,
+  saves: [],
+  savePath: null,
+  characters: [],
   character: null,
   selected: null,
   hovered: null,
@@ -91,15 +94,18 @@ async function boot() {
   I18n.apply();
   buildLangSwitch();
 
-  const [manifest, markerDoc, iconDoc] = await Promise.all([
+  const [manifest, markerDoc, iconDoc, saveDoc] = await Promise.all([
     fetch('tiles/manifest.json').then((r) => r.json()).catch(() => null),
     fetch('api/markers').then((r) => r.json()).catch(() => ({ markers: [] })),
     fetch('icons/index.json').then((r) => r.json()).catch(() => null),
+    fetch('api/saves').then((r) => r.json()).catch(() => ({ current: null, saves: [] })),
   ]);
   state.icons = iconDoc && iconDoc.icons ? iconDoc.icons : null;
 
   state.manifest = manifest;
   state.markers = (markerDoc.markers || []).filter((m) => m.px != null);
+  state.saves = saveDoc.saves || [];
+  state.savePath = saveDoc.current || null;
   for (const m of state.markers) state.byId.set(m.id, m);
 
   if (!manifest || !manifest.masters || !Object.keys(manifest.masters).length) {
@@ -110,6 +116,7 @@ async function boot() {
   buildCategories();
   initMap(state.master);
   wireUi();
+  buildSavePicker();
   connect();
 
   // Language changes only ever affect text, so nothing needs reloading.
@@ -542,8 +549,8 @@ function showPopup(m) {
   el.style.top = y + 'px';
   el.classList.remove('hidden');
   el.querySelector('.close').onclick = closePopup;
-  const t = el.querySelector('.toggle');
-  if (t) t.onclick = () => toggleCheck(m.id, !found);
+  const toggle = el.querySelector('.toggle');
+  if (toggle) toggle.onclick = () => toggleCheck(m.id, !found);
   map.requestDraw();
 }
 
@@ -613,6 +620,47 @@ function buildCategories() {
   }
 }
 
+function buildSavePicker() {
+  const extension = $('save-extension');
+  const file = $('save-file');
+  const extensions = [...new Set(state.saves.map((save) => save.extension))];
+  const selected = state.saves.find((save) => save.path === state.savePath);
+  extension.innerHTML = extensions.map((value) =>
+    `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join('');
+  extension.value = selected?.extension || extensions[0] || '';
+
+  const renderFiles = () => {
+    const matches = state.saves.filter((save) => save.extension === extension.value);
+    file.innerHTML = matches.map((save) =>
+      `<option value="${escapeHtml(save.path)}" title="${escapeHtml(save.path)}">${escapeHtml(save.account)}</option>`
+    ).join('');
+    const current = matches.find((save) => save.path === state.savePath);
+    file.value = current?.path || matches[0]?.path || '';
+    file.disabled = matches.length === 0;
+  };
+  extension.onchange = renderFiles;
+  file.onchange = async () => {
+    if (!file.value || file.value === state.savePath) return;
+    extension.disabled = true;
+    file.disabled = true;
+    try {
+      const response = await fetch('api/saves', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: file.value }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || t('save.switchFailed'));
+      state.savePath = result.current;
+    } catch (error) {
+      toast(t('save.switchFailed'), error.message);
+    } finally {
+      extension.disabled = false;
+      renderFiles();
+    }
+  };
+  renderFiles();
+}
+
 function refreshCounts() {
   let total = 0, found = 0;
   for (const key of Object.keys(CATS)) {
@@ -654,9 +702,10 @@ function wireUi() {
 
   $('toggle-all').onclick = () => {
     if (state.enabled.size) state.enabled.clear();
-    else Object.keys(CATS).forEach((k) => state.enabled.add(k));   // all, incl. misc
-    document.querySelectorAll('.cat').forEach((r) =>
-      r.classList.toggle('off', !state.enabled.has(r.dataset.cat)));
+    else Object.keys(CATS).forEach((key) => { state.enabled.add(key); });
+    document.querySelectorAll('.cat').forEach((row) => {
+      row.classList.toggle('off', !state.enabled.has(row.dataset.cat));
+    });
     $('toggle-all').textContent = state.enabled.size ? t('panel.selectNone') : t('panel.selectAll');
     map.requestDraw();
   };
@@ -720,6 +769,13 @@ function connect() {
     try {
       const p = JSON.parse(ev.data);
       state.livePos = p;
+      const active = state.characters.find((character) => character.slot === p.slot);
+      if (active && active !== state.character) {
+        state.character = active;
+        state.found = new Set(active.found || []);
+        renderCharacter(active);
+        refreshCounts();
+      }
       if (map) map.requestDraw();
     } catch { /* ignore a malformed frame */ }
   });
@@ -746,7 +802,11 @@ function setLive(on) {
 
 function applyState(s) {
   state.checked = s.checked || {};
-  const c = (s.characters || [])[0];
+  state.savePath = s.savePath || state.savePath;
+  state.liveStatus = s.live?.status || state.liveStatus;
+  state.characters = s.characters || [];
+  const c = state.characters.find((character) => character.slot === s.activeSlot)
+    || state.characters[0];
   if (!c) { $('char-name').textContent = t('app.noCharacter'); return; }
 
   const prevFound = state.found;
