@@ -8,6 +8,9 @@
 
 // Labels come from i18n ('cat.<key>'); only presentation lives here.
 // Order here is the order shown in the sidebar.
+// World categories (from build_markers.py) first, then Map-for-Goblins item
+// categories (from extract_items.py). `icon` is the PNG basename under
+// web/icons/categories/ (Map for Goblins' own icons, MIT-licensed).
 const CATS = {
   grace:     { color: '#ffd766', r: 6 },
   boss:      { color: '#e05a5a', r: 6 },
@@ -15,23 +18,70 @@ const CATS = {
   region:    { color: '#9aa0a8', r: 5 },
   fragment:  { color: '#c58bea', r: 5 },
   landmark:  { color: '#8fa3b8', r: 4 },
-  // --- item pickups (data/items.json) ---
-  seed:      { color: '#8ede7a', r: 5 },
-  tear:      { color: '#7dd0ff', r: 5 },
-  talisman:  { color: '#e8b84a', r: 5 },
-  ash:       { color: '#b58bea', r: 5 },
-  spirit:    { color: '#8be8d0', r: 5 },
-  cookbook:  { color: '#d9c89a', r: 4 },
-  bearing:   { color: '#e0a35a', r: 4 },
-  whetblade: { color: '#c9c9c9', r: 4 },
-  weapon:    { color: '#d4805a', r: 4 },
-  armor:     { color: '#a08f76', r: 4 },
-  misc:      { color: '#6f6f6f', r: 3 },
+  // --- equipment ---
+  armaments:    { color: '#d4805a', r: 4, icon: 'weapon.png' },
+  armour:       { color: '#a08f76', r: 4, icon: 'armor.png' },
+  ashes_of_war: { color: '#b58bea', r: 4, icon: 'ash.png' },
+  spirits:      { color: '#8be8d0', r: 4, icon: 'spirit.png' },
+  talismans:    { color: '#e8b84a', r: 4, icon: 'talisman.png' },
+  // --- key items ---
+  celestial_dew:      { color: '#aed8ff', r: 4, icon: 'dew.png' },
+  cookbooks:          { color: '#d9c89a', r: 4, icon: 'cookbook.png' },
+  crystal_tears:      { color: '#7dd0ff', r: 4, icon: 'crystal_tears.png' },
+  imbued_sword_keys:  { color: '#b0c4ff', r: 4, icon: 'stone_key_2.png' },
+  larval_tears:       { color: '#ff9dd6', r: 4, icon: 'larval.png' },
+  lost_ashes:         { color: '#cf9fe8', r: 4, icon: 'lost_ash.png' },
+  pots_n_perfumes:    { color: '#c9b58a', r: 4, icon: 'pots_n_perfumes.png' },
+  seeds_tears:        { color: '#8ede7a', r: 4, icon: 'seed.png' },
+  scadutree_fragments:{ color: '#e8d8a0', r: 4, icon: 'skadu.png' },
+  whetblades:         { color: '#c9c9c9', r: 4, icon: 'whetblade.png' },
+  great_runes:        { color: '#ffd766', r: 4, icon: 'great.png' },
+  // --- loot ---
+  ammo:                 { color: '#c9a06a', r: 4, icon: 'ammo.png' },
+  bell_bearings:        { color: '#e0a35a', r: 4, icon: 'bell.png' },
+  merchant_bell_bearings:{ color: '#d88a4a', r: 4, icon: 'bell_m.png' },
+  consumables:          { color: '#9fbf8f', r: 3, icon: 'consumables.png' },
+  greases:              { color: '#c9d17a', r: 3, icon: 'grease.png' },
+  utilities:            { color: '#8fb8a8', r: 3, icon: 'utils.png' },
+  stat_boosts:          { color: '#d8a8c8', r: 3, icon: 'shard.png' },
+  crafting_materials:   { color: '#7fae7f', r: 3, icon: 'materials.png' },
+  gloveworts:           { color: '#c9b5d8', r: 3, icon: 'glove.png' },
+  great_gloveworts:     { color: '#a890c9', r: 3, icon: 'glove_high.png' },
+  golden_runes:         { color: '#e8d04a', r: 4, icon: 'rune_high.png' },
+  golden_runes_low:     { color: '#d8c040', r: 3, icon: 'rune_low.png' },
+  material_nodes:       { color: '#7fae7f', r: 3, icon: 'nodes.png' },
+  mp_fingers:           { color: '#c9a8a8', r: 3, icon: 'finger.png' },
+  prattling_pates:      { color: '#e0c8a0', r: 3, icon: 'pate.png' },
+  gestures:             { color: '#c0c9d8', r: 3, icon: 'gesture.png' },
+  reusables:            { color: '#a8c9c0', r: 3, icon: 'reusable.png' },
+  smithing_stones:      { color: '#d8b878', r: 4, icon: 'smst.png' },
+  smithing_stones_low:  { color: '#c9a868', r: 3, icon: 'smst_low.png' },
+  smithing_stones_rare: { color: '#e0c890', r: 4, icon: 'smst_high.png' },
+  stonesword_keys:      { color: '#b0c0e0', r: 4, icon: 'stone_key.png' },
+  throwables:           { color: '#c9a0a0', r: 3, icon: 'throw.png' },
+  rune_arcs:            { color: '#e8d878', r: 4, icon: 'ark.png' },
+  dragon_hearts:        { color: '#e08080', r: 4, icon: 'dragon_heart.png' },
+  // --- magic ---
+  incantations:  { color: '#e8b878', r: 4, icon: 'incantation.png' },
+  memory_stones: { color: '#c9b8e0', r: 4, icon: 'memory.png' },
+  prayerbooks:   { color: '#d8c8a0', r: 4, icon: 'prayerbook.png' },
+  sorceries:     { color: '#8bb8e8', r: 4, icon: 'sorceries.png' },
+  // --- quest ---
+  deathroot:       { color: '#c08080', r: 4, icon: 'death.png' },
+  progression:     { color: '#c0a8d8', r: 4, icon: 'quest.png' },
+  seedbed_curses:  { color: '#a080c0', r: 4, icon: 'curse.png' },
+  // --- reforged (ERR-specific) ---
+  ember_pieces:     { color: '#ff8a5a', r: 4, icon: 'ember_piece.png' },
+  items_and_changes:{ color: '#d8a8e0', r: 4, icon: 'reforged.png' },
+  fortunes:         { color: '#e8c080', r: 4, icon: 'fortune.png' },
+  rune_pieces:      { color: '#ffd080', r: 4, icon: 'rune_piece.png' },
+  sealed_curios:    { color: '#b8a8d8', r: 4, icon: 'curio.png' },
+  // --- fallback ---
+  misc: { color: '#6f6f6f', r: 3 },
 };
 
-// `misc` is ~1,900 consumables and crafting materials. On by default it buries
-// the map, so it starts hidden and can be switched on from the sidebar.
-const OFF_BY_DEFAULT = new Set(['misc']);
+// High-volume categories that bury the map if on by default.
+const OFF_BY_DEFAULT = new Set(['misc', 'consumables', 'crafting_materials', 'ammo']);
 const FOUND_COLOR = '#6fcf7a';
 
 const $ = (id) => document.getElementById(id);
@@ -66,22 +116,40 @@ const state = {
 };
 
 /**
- * The game's own map icons, extracted by tools/extract_icons.py. Entirely
- * optional: if the extractor was never run the fetch fails and every marker
- * keeps its coloured dot.
+ * Marker icon lookup. World markers carry a numeric iconId resolved through
+ * icons/index.json; item markers carry a PNG basename served from
+ * icons/categories/ (Map for Goblins' icons). Optional: without them every
+ * marker keeps its coloured dot.
  */
 function iconFor(mk) {
-  if (!state.showIcons || !state.icons || !mk.icon) return null;
-  const meta = state.icons[mk.icon];
+  if (!state.showIcons || !mk.icon) return null;
+  const key = mk.icon;
+  if (typeof key === 'string' && key.endsWith('.png')) {
+    let img = state.iconImgs.get(key);
+    if (img === undefined) {
+      img = new Image();
+      img.decoding = 'async';
+      img.onload = () => { if (map) map.requestDraw(); };
+      img.onerror = () => state.iconImgs.set(key, null);
+      img.src = 'icons/categories/' + key;
+      state.iconImgs.set(key, img);
+    }
+    if (img && img.complete && img.naturalWidth) {
+      return { img, meta: { w: img.naturalWidth, h: img.naturalHeight } };
+    }
+    return null;
+  }
+  if (!state.icons) return null;
+  const meta = state.icons[key];
   if (!meta) return null;
-  let img = state.iconImgs.get(mk.icon);
+  let img = state.iconImgs.get(key);
   if (img === undefined) {
     img = new Image();
     img.decoding = 'async';
     img.onload = () => { if (map) map.requestDraw(); };
-    img.onerror = () => state.iconImgs.set(mk.icon, null);
+    img.onerror = () => state.iconImgs.set(key, null);
     img.src = meta.file;
-    state.iconImgs.set(mk.icon, img);
+    state.iconImgs.set(key, img);
   }
   return img && img.complete && img.naturalWidth ? { img, meta } : null;
 }

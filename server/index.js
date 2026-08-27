@@ -45,21 +45,29 @@ function parseArgs(argv) {
   return out;
 }
 
-/** %APPDATA%/EldenRing/<steamId>/ER0000.sl2 - pick the most recently written. */
+/** %APPDATA%/EldenRing/<steamId>/ER0000.{err,sl2,...} - pick the most recent.
+ * The ERR mod saves as ER0000.err, vanilla as ER0000.sl2; either may exist.
+ * Prefer .err when it is at least as recent, so a modded run is not masked by
+ * a stale vanilla save. */
 function findSave() {
   const appdata = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
   const base = path.join(appdata, 'EldenRing');
-  let best = null;
+  const candidates = [];
   try {
     for (const dir of fs.readdirSync(base)) {
-      const p = path.join(base, dir, 'ER0000.sl2');
-      try {
-        const st = fs.statSync(p);
-        if (!best || st.mtimeMs > best.mtimeMs) best = { path: p, mtimeMs: st.mtimeMs };
-      } catch { /* not a save dir */ }
+      if (!/^\d+$/.test(dir)) continue;
+      for (const ext of ['err', 'sl2']) {
+        const p = path.join(base, dir, `ER0000.${ext}`);
+        try {
+          const st = fs.statSync(p);
+          if (st.isFile()) candidates.push({ path: p, ext, mtimeMs: st.mtimeMs });
+        } catch { /* not present */ }
+      }
     }
   } catch { /* no EldenRing folder */ }
-  return best && best.path;
+  if (!candidates.length) return null;
+  candidates.sort((a, b) => b.mtimeMs - a.mtimeMs || (a.ext === 'err' ? -1 : 1));
+  return candidates[0].path;
 }
 
 /* ------------------------------------------------------------------- state */

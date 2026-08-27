@@ -1,0 +1,7 @@
+Category icons in this directory are from Map for Goblins
+(https://github.com/VirusAlex/ERR-MapForGoblins-DLL), © VirusAlex,
+licensed under the MIT-style license included in that repository.
+
+The category classification logic (tools/erlib/mfg_categories.py) is likewise
+derived from Map for Goblins' open-source data pipeline
+(tools/generate_loot_massedit.py, tools/map_categories.py).

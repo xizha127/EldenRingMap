@@ -28,6 +28,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from erlib import msb as msblib, param, paramdef, fmg, dcx, oodle
 import erlib.modfiles as modfiles
+import erlib.mfg_categories as mfg_categories
 from erlib.dvdbnd import DvdBnd
 from erlib.gamepath import require_game_dir
 from build_markers import LegacyConv, place, LOCALES
@@ -57,36 +58,14 @@ CATEGORY_TABLES = {
     5: "GemName",
 }
 
-# Items worth their own map layer. Everything else is lumped into "misc" so the
-# map isn't drowned in Smithing Stones.
-NOTABLE = {
-    "seed":     ["golden seed"],
-    "tear":     ["sacred tear", "crystal tear"],
-    "talisman": [],                      # whole AccessoryName category
-    "ash":      [],                      # whole GemName category
-    "cookbook": ["cookbook"],
-    "bearing":  ["bell bearing"],
-    "whetblade": ["whetblade"],
-    "spirit":   ["ashes"],               # spirit summons
-}
+def categorise(iid, names, category):
+    """-> marker category string for one lot's headline item.
 
-
-def categorise(names, category):
-    """-> marker category string for one lot's headline item."""
-    low = (names or "").lower()
-    if category == 4:
-        return "talisman"
-    if category == 5:
-        return "ash"
-    for cat, needles in NOTABLE.items():
-        for n in needles:
-            if n and n in low:
-                return cat
-    if category == 2:
-        return "weapon"
-    if category == 3:
-        return "armor"
-    return "misc"
+    Delegates entirely to the Map-for-Goblins classifier (ported from its
+    open-source repo), which already assigns every item a category; `misc` is
+    its own fallback, so nothing is dropped.
+    """
+    return mfg_categories.categorise(iid, names, category)
 
 
 def main():
@@ -222,7 +201,8 @@ def main():
             continue
         iid, cat, en_name = picked
         loc_names = {loc: (item_name(loc, iid, cat) or en_name) for loc in LOCALES}
-        mcat = categorise(en_name, cat)
+        mcat = categorise(iid, en_name, cat)
+        icon = mfg_categories.icon_for(mcat)
         cat_counts[mcat] += 1
         markers.append({
             "id": f"item:{lot_id}",
@@ -232,6 +212,7 @@ def main():
             "master": p[2], "px": round(p[0], 1), "py": round(p[1], 1),
             "map": map_id,
             "lot": lot_id,
+            "icon": icon,
         })
 
     # A projection bug is silent unless you look for it - markers simply land
