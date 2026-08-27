@@ -776,6 +776,19 @@ function refreshCounts() {
 }
 
 function wireUi() {
+  // Collapsible panels: every [data-collapse] header toggles its section.
+  document.querySelectorAll('[data-collapse]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const section = btn.closest('.panel');
+      if (section) section.classList.toggle('collapsed');
+    });
+  });
+
+  // Whole-sidebar collapse + floating expand tab.
+  const app = document.getElementById('app');
+  $('sb-collapse').onclick = () => app.classList.add('sb-collapsed');
+  $('sb-expand').onclick = () => app.classList.remove('sb-collapsed');
+
   $('zoom-in').onclick = () => map.zoomBy(1.6);
   $('zoom-out').onclick = () => map.zoomBy(1 / 1.6);
   $('zoom-fit').onclick = () => map.fit();
