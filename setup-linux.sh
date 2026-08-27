@@ -2,7 +2,11 @@
 set -euo pipefail
 
 readonly ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-readonly STEAM_ROOT="${ER_STEAM_ROOT:-$HOME/.steam/steam}"
+# Derive the home from $USER so no literal username is baked into paths.
+USER_HOME="${ER_USER_HOME:-$(getent passwd "$USER" 2>/dev/null | cut -d: -f6)}"
+: "${USER_HOME:=$HOME}"
+readonly USER_HOME
+readonly STEAM_ROOT="${ER_STEAM_ROOT:-$USER_HOME/.steam/steam}"
 readonly GAME_DIR="${ER_GAME_DIR:-$STEAM_ROOT/steamapps/common/ELDEN RING/Game}"
 # Only treat a mod folder as active when the game is actually loading
 # loose-file mods (loader DLL present) and the mod genuinely replaces
@@ -16,15 +20,31 @@ for dll in dxgi.dll winmm.dll dinput8.dll version.dll unsteam.dll; do
     fi
 done
 if [[ "$mod_loader_present" == true ]]; then
-    for candidate in "$HOME/.steam/steam/steamapps/common/ELDEN RING/Game/mod" \
-                     "$HOME/ERR/mod" \
-                     "$HOME/mod"; do
-        if [[ -n "$candidate" && -d "$candidate" && -r "$candidate/regulation.bin" ]] \
-           && ! cmp -s "$candidate/regulation.bin" "$GAME_DIR/regulation.bin"; then
-            DEFAULT_MOD_DIR="$candidate"
+    shopt -s nullglob
+    mod_candidates=()
+    for pattern in /mnt/media/*/Games/ERR/mod \
+                   /run/media/*/GAMES/ERR/mod \
+                   /media/*/Games/ERR/mod \
+                   "$USER_HOME/ERR/mod" \
+                   /mnt/*/Games/ERR/mod; do
+        for cand in $pattern; do
+            if [[ -e "$cand" && -d "$cand" && -r "$cand/regulation.bin" ]] \
+               && ! cmp -s "$cand/regulation.bin" "$GAME_DIR/regulation.bin"; then
+                mod_candidates+=("$cand")
+            fi
+        done
+    done
+    shopt -u nullglob
+    # Prefer the canonical ERR directory over ERRv* backups.
+    for cand in "${mod_candidates[@]}"; do
+        if [[ "$cand" == */ERR/mod ]]; then
+            DEFAULT_MOD_DIR="$cand"
             break
         fi
     done
+    if [[ -z "$DEFAULT_MOD_DIR" && "${#mod_candidates[@]}" -gt 0 ]]; then
+        DEFAULT_MOD_DIR="${mod_candidates[0]}"
+    fi
 fi
 readonly MOD_DIR="${ER_MOD_DIR:-$DEFAULT_MOD_DIR}"
 readonly NATIVE_DIR="$ROOT/cache/native-oodle"
@@ -65,11 +85,16 @@ check_host() {
     fi
 }
 
+display_path() {
+    local p="$1"
+    printf '%s' "${p/#"$USER_HOME"/\~}"
+}
+
 if [[ "${1:-}" == "--check" ]]; then
     check_host
-    printf 'Game: %s\n' "$GAME_DIR"
-    printf 'Mod files: %s\n' "${MOD_DIR:-none}"
-    printf 'Native Oodle: %s\n' "$LIB"
+    printf 'Game: %s\n' "$(display_path "$GAME_DIR")"
+    printf 'Mod files: %s\n' "$(display_path "${MOD_DIR:-none}")"
+    printf 'Native Oodle: %s\n' "$(display_path "$LIB")"
     exit 0
 fi
 

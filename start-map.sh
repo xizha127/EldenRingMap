@@ -2,7 +2,11 @@
 set -euo pipefail
 
 readonly ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-readonly STEAM_ROOT="${ER_STEAM_ROOT:-$HOME/.steam/steam}"
+# Derive the home from $USER so no literal username is baked into paths.
+USER_HOME="${ER_USER_HOME:-$(getent passwd "$USER" 2>/dev/null | cut -d: -f6)}"
+: "${USER_HOME:=$HOME}"
+readonly USER_HOME
+readonly STEAM_ROOT="${ER_STEAM_ROOT:-$USER_HOME/.steam/steam}"
 readonly PREFIX="${ER_PREFIX:-$STEAM_ROOT/steamapps/compatdata/1245620/pfx}"
 readonly PORT="${ER_MAP_PORT:-8099}"
 
@@ -34,10 +38,15 @@ test -r "$ROOT/web/tiles/manifest.json" || {
     exit 1
 }
 
+display_path() {
+    local p="$1"
+    printf '%s' "${p/#"$USER_HOME"/\~}"
+}
+
 if [[ "${1:-}" == "--check" ]]; then
     printf 'Node: %s\n' "$(command -v node)"
-    printf 'Save: %s\n' "$save"
-    printf 'Map assets: %s\n' "$ROOT/web/tiles/manifest.json"
+    printf 'Save: %s\n' "$(display_path "$save")"
+    printf 'Map assets: %s\n' "$(display_path "$ROOT/web/tiles/manifest.json")"
     exit 0
 fi
 
