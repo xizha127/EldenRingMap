@@ -103,6 +103,7 @@ const state = {
   savePath: null,
   characters: [],
   character: null,
+  slot: null,           // manual character-slot override; null = auto-match
   selected: null,
   hovered: null,
   clusters: [],
@@ -534,7 +535,7 @@ function drawPlayer(ctx, m) {
   state.playerRender = r;
 
   const [sx, sy] = m.toScreen(r.px, r.py);
-  const pulse = 10 + Math.sin(performance.now() / 600) * 3;
+  const pulse = 11 + Math.sin(performance.now() / 600) * 3;
 
   // facing cone, when the live feed gives us a heading
   if (r.angle != null) {
@@ -551,18 +552,30 @@ function drawPlayer(ctx, m) {
     ctx.fill();
   }
 
+  // High-contrast player marker: a dark ring always, so the dot reads on both
+  // the dark map and bright snow; the fill is the live colour.
+  const fill = target.live ? '#3fb8ff' : '#ffffff';
+
+  // soft halo
   ctx.beginPath();
-  ctx.arc(sx, sy, pulse, 0, Math.PI * 2);
-  ctx.strokeStyle = target.live ? 'rgba(120,220,255,.5)' : 'rgba(255,255,255,.3)';
-  ctx.lineWidth = 1.5;
+  ctx.arc(sx, sy, pulse + 4, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(63,184,255,.22)';
+  ctx.fill();
+
+  // dark outer ring (visible on white snow)
+  ctx.beginPath();
+  ctx.arc(sx, sy, pulse + 2, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(8,10,12,.85)';
+  ctx.lineWidth = 2.5;
   ctx.stroke();
 
+  // inner dot
   ctx.beginPath();
-  ctx.arc(sx, sy, 5, 0, Math.PI * 2);
-  ctx.fillStyle = target.live ? '#8fe3ff' : '#fff';
+  ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+  ctx.fillStyle = fill;
   ctx.fill();
-  ctx.strokeStyle = '#12181c';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#0a0d10';
+  ctx.lineWidth = 2;
   ctx.stroke();
 
   // Keep animating only while there is something to animate.
@@ -763,6 +776,19 @@ function buildSavePicker() {
   renderFiles();
 }
 
+function buildSlotPicker(currentChar) {
+  const sel = $('char-slot');
+  if (!sel) return;
+  const chars = state.characters || [];
+  if (!chars.length) { sel.innerHTML = ''; sel.disabled = true; return; }
+  sel.innerHTML = chars.map((c) => {
+    const mark = c.slot === (currentChar && currentChar.slot) ? ' selected' : '';
+    return `<option value="${c.slot}"${mark}>${escapeHtml(c.name)} · ${t('char.level')} ${c.level}</option>`;
+  }).join('');
+  sel.value = String(currentChar ? currentChar.slot : chars[0].slot);
+  sel.disabled = false;
+}
+
 function refreshCounts() {
   let total = 0, found = 0;
   for (const key of Object.keys(CATS)) {
@@ -792,6 +818,22 @@ function wireUi() {
   const app = document.getElementById('app');
   $('sb-collapse').onclick = () => app.classList.add('sb-collapsed');
   $('sb-expand').onclick = () => app.classList.remove('sb-collapsed');
+
+  // Manual character-slot picker overrides the live auto-match.
+  const slotSel = $('char-slot');
+  if (slotSel) slotSel.onchange = () => {
+    const c = state.characters.find((x) => x.slot === Number(slotSel.value));
+    if (!c) return;
+    state.slot = c.slot;
+    state.character = c;
+    state.found = new Set(c.found || []);
+    if (c.mapPixel && typeof c.mapPixel === 'object') {
+      c.mapMaster = c.mapPixel.master;
+    }
+    renderCharacter(c);
+    refreshCounts();
+    if (map) map.requestDraw();
+  };
 
   $('zoom-in').onclick = () => map.zoomBy(1.6);
   $('zoom-out').onclick = () => map.zoomBy(1 / 1.6);
@@ -888,12 +930,16 @@ function connect() {
       const p = JSON.parse(ev.data);
       state.livePos = p;
       if (state.followPlayer) followPlayer();
-      const active = state.characters.find((character) => character.slot === p.slot);
-      if (active && active !== state.character) {
-        state.character = active;
-        state.found = new Set(active.found || []);
-        renderCharacter(active);
-        refreshCounts();
+      // Only auto-follow the live slot when the user has not picked one manually.
+      if (state.slot == null) {
+        const active = state.characters.find((character) => character.slot === p.slot);
+        if (active && active !== state.character) {
+          state.character = active;
+          state.found = new Set(active.found || []);
+          renderCharacter(active);
+          refreshCounts();
+          buildSlotPicker(active);
+        }
       }
       if (map) map.requestDraw();
     } catch { /* ignore a malformed frame */ }
@@ -924,9 +970,17 @@ function applyState(s) {
   state.savePath = s.savePath || state.savePath;
   state.liveStatus = s.live?.status || state.liveStatus;
   state.characters = s.characters || [];
-  const c = state.characters.find((character) => character.slot === s.activeSlot)
+  // Manual slot override wins; otherwise follow the server's activeSlot match;
+  // finally fall back to slot 0.
+  const want = state.slot != null
+    ? state.characters.find((character) => character.slot === state.slot)
+    : null;
+  const c = want
+    || state.characters.find((character) => character.slot === s.activeSlot)
     || state.characters[0];
   if (!c) { $('char-name').textContent = t('app.noCharacter'); return; }
+
+  buildSlotPicker(c);
 
   const prevFound = state.found;
   state.found = new Set(c.found || []);
