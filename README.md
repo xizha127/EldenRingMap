@@ -296,6 +296,69 @@ tool.
 
 ## Changelog
 
+### Fork additions (xizha127) — 2026-08-27
+
+This fork adds native Linux support and a Map-for-Goblins integration layer.
+Everything below the "upstream" divider is from this fork; everything above it
+in the version history (1.2, 1.1, 1.0) is the upstream project.
+
+#### Map-for-Goblins category taxonomy and icons
+
+Replaces the coarse item categories (weapon / armor / misc) with Map for
+Goblins' **47 item categories** — Armaments, Armour, Ashes of War, Spirit
+Ashes, Talismans, Cookbooks, Crystal Tears, Smithing Stones (by tier), Golden
+Runes (by tier), Rune Arcs, Gloveworts, Incantations, Sorceries, Deathroot,
+Reforged-exclusive items (Ember Pieces, Rune Pieces, Fortunes, Sealed Curios),
+and more. Each category carries Map for Goblins' own icon (MIT-licensed), so
+markers draw with real sprites instead of coloured dots.
+
+The classifier is ported from the open-source
+[ERR-MapForGoblins-DLL](https://github.com/VirusAlex/ERR-MapForGoblins-DLL)
+`LOOT_CATEGORIES` (itemId-based, not name heuristics), bundled as
+`tools/erlib/mfg_categories.py` with its data files under `data/mfg/`.
+
+#### ERR Rune / Ember Piece markers
+
+Adds **1,135 Rune Pieces** and **316 Ember Pieces** — ERR collectibles placed
+as MSB entities (`AEG099_821` / `AEG099_822`), handled by a dedicated
+`tools/extract_pieces.py` since they are not loot lots. Total markers on an ERR
+install: **~6,360** (up from 4,909).
+
+#### Live follow mode
+
+The ◎ centre-on-player button is now a **toggle**: click once to continuously
+auto-centre the map on your character as position updates arrive (~20 Hz in
+live mode, or per save write otherwise), click again (or drag the map) to
+release. Wheel-zoom does not disengage. Cross-map travel auto-switches the map
+layer. Gold highlight when engaged.
+
+#### Collapsible UI
+
+Every sidebar section — Character, Progress, Search, Map, Categories, Options —
+collapses via its title header, and the **whole sidebar** collapses to a
+floating expand tab so the map can use the full width.
+
+#### Character / save selection
+
+The save-file dropdown now lists each save's **character names and levels**
+(e.g. "Alyssa · Lv 134 / PeePeeLord · Lv 145") instead of raw Steam account
+IDs, and a new **Character** dropdown below it lets you manually pick which
+slot's progress is displayed, overriding the automatic live-position match.
+The auto-match itself was hardened to re-evaluate continuously (3-sample
+hysteresis) instead of locking to the first sample.
+
+#### Native Linux launchers
+
+`setup-linux.sh` and `start-map.sh` run the map natively on Linux, building a
+`linoodle` Oodle shim against the game's own `oo2core_6_win64.dll` (no Wine
+needed for extraction) and reading the live Proton process via `/proc`.
+All paths derive from `$USER`/`$HOME` — no hard-coded username — and auto-detect
+the canonical ERR mod directory only when a mod-loader DLL is present and the
+mod's `regulation.bin` differs from the game's. `server/index.js` also detects
+the ERR `.err` save extension, not just vanilla `.sl2`.
+
+### Upstream (egormagurin/EldenRingMap)
+
 ### 1.2 — map icons
 Markers now draw with the game's **own map sprites** — the golden grace ring,
 catacomb arches, cave mouths, churches — instead of coloured dots. 89 icons are
