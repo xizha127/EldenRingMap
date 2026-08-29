@@ -172,6 +172,13 @@ async function boot() {
   ]);
   state.icons = iconDoc && iconDoc.icons ? iconDoc.icons : null;
 
+  // Restore a previously-picked character slot so the wrong auto-match at a
+  // shared hub (Roundtable Hold) doesn't keep flipping the displayed character.
+  try {
+    const saved = localStorage.getItem('charSlot');
+    if (saved !== null) state.slot = Number(saved);
+  } catch { /* storage unavailable */ }
+
   state.manifest = manifest;
   state.markers = (markerDoc.markers || []).filter((m) => m.px != null);
   state.saves = saveDoc.saves || [];
@@ -825,6 +832,7 @@ function wireUi() {
     const c = state.characters.find((x) => x.slot === Number(slotSel.value));
     if (!c) return;
     state.slot = c.slot;
+    try { localStorage.setItem('charSlot', String(c.slot)); } catch { /* storage unavailable */ }
     state.character = c;
     state.found = new Set(c.found || []);
     if (c.mapPixel && typeof c.mapPixel === 'object') {
