@@ -108,6 +108,7 @@ const STRINGS = {
     'master.M11': 'Realm of Shadow — Underground',
 
     'char.level': 'Level',
+    'char.slot': 'Character',
     'char.lastSave': 'Last save',
     'char.runes': 'runes',
     'char.deaths': ['death', 'deaths', 'deaths'],
@@ -245,6 +246,7 @@ const STRINGS = {
     'master.M11': 'Царство теней — подземелья',
 
     'char.level': 'Уровень',
+    'char.slot': 'Персонаж',
     'char.lastSave': 'Последнее сохранение',
     'char.runes': 'рун',
     'char.deaths': ['смерть', 'смерти', 'смертей'],

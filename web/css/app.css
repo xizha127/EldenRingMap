@@ -137,8 +137,9 @@ html, body {
 .stat b { display: block; font-size: 13px; font-weight: 600; color: var(--text); }
 .stat span { font-size: 9px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
 .where { margin-top: 10px; font-size: 11px; line-height: 1.5; }
-.save-picker { display: grid; grid-template-columns: 1fr 1.6fr; gap: 6px; margin-top: 9px; }
+.save-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 9px; }
 .save-picker label { display: grid; gap: 3px; color: var(--dim); font-size: 10px; }
+.save-picker .save-file-row { grid-column: 1 / -1; }
 .save-picker select {
   min-width: 0; padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px;
   background: var(--panel); color: var(--text); font-size: 11px;
